@@ -18,10 +18,24 @@ from notion_client import Client
 from pydantic import BaseModel, Field
 from upath import UPath
 
-from trending_repository_summarizer.md2notion import parse_markdown_to_notion_blocks
+from trending_repository_summarizer.md2notion import (
+    parse_markdown_to_notion_blocks,
+    process_inline_formatting,
+)
 
 StructuredResponse = TypeVar("StructuredResponse", bound=BaseModel)
 GITHUB_API_ENDPOINT = "https://api.github.com"
+REPOSITORY_TAGS = [
+    "ツール",
+    "フレームワーク",
+    "データセット",
+    "生成AI",
+    "データ分析",
+    "機械学習",
+    "マーケティング",
+    "デザイン",
+    "セキュリティ",
+]
 
 
 class ReferenceSite(BaseModel):
@@ -47,11 +61,19 @@ class RepositorySummary(BaseModel):
     """リポジトリの概要"""
 
     description: str = Field(description="リポジトリの概要")
+    short_description: str = Field(description="リポジトリの簡潔な説明")
     pros: str = Field(description="リポジトリを利用するメリット")
     cons: str = Field(description="リポジトリを利用する際の注意点")
     usecases: str = Field(description="リポジトリを活用すべきケース")
     anti_usecases: str = Field(description="リポジトリを活用すべきでないケース")
     quickstart: str = Field(description="リポジトリの使い方")
+    tags: List[str] = Field(description="リポジトリのタグ")
+
+
+class RepositoryTags(BaseModel):
+    """リポジトリのタグ一覧"""
+
+    tags: List[str] = Field(description="リポジトリのタグ")
 
 
 class RepositoryInfo(BaseModel):
@@ -140,12 +162,6 @@ def summarize_repository(
     metadata: RepositoryMetaData, readme: str
 ) -> RepositorySummary:
     """Summarize README using OpenAI GPT-3"""
-    chat = ChatOpenAI(
-        model="gpt-4o-mini",
-        openai_api_key=os.getenv("OPENAI_API_KEY"),  # type: ignore
-        temperature=0.0,
-    )
-
     # prompt cacheが効くように、READMEの内容をsystem_promptに含める
     system_prompt = (
         "あなたは世界一優秀な日本語のAIアシスタントです。"
@@ -165,6 +181,21 @@ def summarize_repository(
             "- 枕詞や冗長な表現を避け、300文字以内の日本語で簡潔にまとめること\n"
             "- 開発者向けの情報（コミュニティ貢献やプルリクエストなど）は出力に含めないこと\n"
             "- ポイントとなるキーワードや文字列は、太字で強調すること\n"
+        ),
+    )
+
+    # リポジトリの概要説明
+    short_description = _invoke_llm(
+        system_prompt=system_prompt,
+        user_prompt=(
+            "# 指示\n\n"
+            f"{metadata.repo_name}の概要を、{metadata.repo_name}のユーザ向けに分かりやすくまとめてください。\n"
+            "ただし、下記の条件をすべて厳守してください。\n\n"
+            "# 条件\n\n"
+            "- 枕詞や冗長な表現を避け、100文字以内の日本語で簡潔にまとめること\n"
+            "- 開発者向けの情報（コミュニティ貢献やプルリクエストなど）は出力に含めないこと\n"
+            "- ポイントとなるキーワードや文字列は、太字で強調すること\n"
+            "- 出力に改行を一切含めないこと\n"
         ),
     )
 
@@ -238,13 +269,40 @@ def summarize_repository(
         user_prompt=f"{metadata.repo_name}を手早く使い始めるための手順を、400文字以内の日本語で、ユーザ向けに分かりやすく説明してください。",
     )
 
+    # タグ
+    temperature = 0.0
+    while True:
+        tags = _invoke_llm(
+            system_prompt=system_prompt,
+            user_prompt=(
+                "# 指示\n\n"
+                f"{metadata.repo_name}の内容をもとに、下記のタグ一覧から該当するものを0～3個選定してください。\n"
+                "出力する際は、選定したタグをリスト形式で出力してください。\n\n"
+                + "\n".join(f"- {tag}" for tag in REPOSITORY_TAGS)
+            ),
+            format=RepositoryTags,
+            temperature=temperature,
+        ).tags
+
+        if all(tag in REPOSITORY_TAGS for tag in tags):
+            break
+
+        if temperature >= 2.0:
+            logging.warning("Failed to generate tags")
+            tags = []
+            break
+
+        temperature += 0.2
+
     summary = RepositorySummary(
         description=description,
+        short_description=short_description,
         pros=pros,
         cons=cons,
         usecases=usecases,
         anti_usecases=anti_usecases,
         quickstart=quickstart,
+        tags=tags,
     )
 
     return summary
@@ -316,6 +374,8 @@ def create_notion_page_from_md(
     title: str,
     markdown_text: str,
     cover_url: str | None = None,
+    short_description: str | None = None,
+    tags: List[str] | None = None,
     parent: dict | None = None,
 ) -> None:
     """
@@ -340,9 +400,18 @@ def create_notion_page_from_md(
     if cover_url is not None:
         page_options["cover"] = {"external": {"url": cover_url}}
 
+    # build properties
+    properties = {"title": {"title": [{"type": "text", "text": {"content": title}}]}}
+    if short_description is not None:
+        properties["Description"] = {
+            "rich_text": process_inline_formatting(short_description)
+        }
+    if tags is not None:
+        properties["Tags"] = {"multi_select": [{"name": tag} for tag in tags]}
+
     notion.pages.update(
         page_id,
-        properties={"title": {"title": [{"type": "text", "text": {"content": title}}]}},
+        properties=properties,
         **page_options,
     )
 
@@ -353,21 +422,28 @@ def create_notion_page_from_md(
 
 
 @overload
-def _invoke_llm(system_prompt: str, user_prompt: str) -> str: ...
+def _invoke_llm(
+    system_prompt: str, user_prompt: str, *, temperature: float = 0.0
+) -> str: ...
 
 
 @overload
 def _invoke_llm(
-    system_prompt: str, user_prompt: str, format: Type[StructuredResponse]
+    system_prompt: str,
+    user_prompt: str,
+    format: Type[StructuredResponse],
+    temperature: float = 0.0,
 ) -> StructuredResponse: ...
 
 
-def _invoke_llm(system_prompt: str, user_prompt: str, format=None):
+def _invoke_llm(
+    system_prompt: str, user_prompt: str, format=None, temperature: float = 0.0
+):
     """Invoke OpenAI's Language Model API"""
     chat = ChatOpenAI(
         model="gpt-4o-mini",
         openai_api_key=os.getenv("OPENAI_API_KEY"),  # type: ignore
-        temperature=0.0,
+        temperature=temperature,
     )
 
     if format is not None:
@@ -386,8 +462,16 @@ def _invoke_llm(system_prompt: str, user_prompt: str, format=None):
 
 
 def main() -> None:
+    # Load .env file
     load_dotenv()
-    logging.basicConfig(level=logging.INFO)
+
+    # Set up logging
+    if len(logging.getLogger().handlers) > 0:
+        # The Lambda environment pre-configures a handler logging to stderr. If a handler is already configured,
+        # `.basicConfig` does not execute. Thus we set the level directly.
+        logging.getLogger().setLevel(logging.INFO)
+    else:
+        logging.basicConfig(level=logging.INFO)
 
     # 収集したリポジトリ情報を保存するディレクトリ
     repo_dir = UPath("s3://github-trending-repos-info/repos/")
