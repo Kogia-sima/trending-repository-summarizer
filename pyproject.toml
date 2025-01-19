@@ -21,7 +21,7 @@ langchain-openai = "^0.3.0"
 markdown = "^3.7"
 jinja2 = "^3.1.5"
 universal-pathlib = "^0.2.6"
-fsspec = {extras = ["s3"], version = "^2024.12.0"}
+fsspec = { extras = ["s3"], version = "^2024.12.0" }
 notion-client = "^2.3.0"
 
 [tool.poetry.group.dev.dependencies]
@@ -42,7 +42,7 @@ addopts = "-vvv"
 testpaths = "tests"
 
 [tool.ruff]
-extend-exclude = ["__pycache__", "build", "dist"]
+extend-exclude = ["__pycache__", "build", "dist", "scripts"]
 target-version = "py311"
 line-length = 100
 src = ["src", "tests"]
@@ -59,7 +59,6 @@ extend-select = [
     "D211",
     "D213",
     "D300",
-    "D400",
     "D402",
     "D403",
     "D404",
@@ -82,7 +81,6 @@ extend-select = [
     "PIE810",
     "RET502",
     "RET503",
-    "RET504",
     "RET505",
     "RUF015",
     "RUF100",

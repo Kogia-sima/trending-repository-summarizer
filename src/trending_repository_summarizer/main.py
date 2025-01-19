@@ -4,7 +4,6 @@ import logging
 import os
 import time
 from pathlib import Path
-from pprint import pprint
 from typing import List, Type, TypeVar, overload
 from urllib.parse import urljoin, urlparse
 
@@ -384,7 +383,8 @@ def create_notion_page_from_md(
     Args:
         title: The title of the new Notion page.
         markdown_text: The Markdown text to be converted into a Notion page.
-        cover_url: (Optional) The URL of the cover image for the new page. Defaults to an empty string.
+        cover_url: (Optional) The URL of the cover image for the new page.
+            Defaults to an empty string.
 
     See Also:
         https://github.com/markomanninen/md2notion/blob/11bd184ca86482f200ff51060e291dd5492dd0a7/md2notionpage/core.py#L550
@@ -457,8 +457,8 @@ def _invoke_llm(
 
     if format is None:
         return response.content  # type: ignore
-    else:
-        return response
+
+    return response
 
 
 def main() -> None:
@@ -467,8 +467,9 @@ def main() -> None:
 
     # Set up logging
     if len(logging.getLogger().handlers) > 0:
-        # The Lambda environment pre-configures a handler logging to stderr. If a handler is already configured,
-        # `.basicConfig` does not execute. Thus we set the level directly.
+        # The Lambda environment pre-configures a handler logging to stderr.
+        # If a handler is already configured, `.basicConfig` does not execute.
+        # Thus we set the level directly.
         logging.getLogger().setLevel(logging.INFO)
     else:
         logging.basicConfig(level=logging.INFO)
