@@ -504,6 +504,8 @@ def main() -> None:
             markdown_text=repo_markdown,
             cover_url=metadata.thumbnail_url,
             parent={"database_id": database_id},
+            short_description=summary.short_description,
+            tags=summary.tags,
         )
 
         save_repository_info(repo_dir / f"{repo_id}.json", info)
