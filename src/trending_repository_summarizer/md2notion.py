@@ -39,6 +39,29 @@ from notion_client import Client
 # Initialize the Notion client
 notion = Client(auth=environ.get("NOTION_SECRET"))
 
+# fmt: off
+VALID_CODE_LANGUAGES = [
+    "abap", "agda", "arduino", "ascii art", "assembly", "bash", "basic", "bnf", "c", "c#", "c++",
+    "clojure", "coffeescript", "coq", "css", "dart", "dhall", "diff", "docker", "ebnf", "elixir",
+    "elm", "erlang", "f#", "flow", "fortran", "gherkin", "glsl", "go", "graphql", "groovy",
+    "haskell", "hcl", "html", "idris", "java", "javascript", "json", "julia", "kotlin", "latex",
+    "less", "lisp", "livescript", "llvm ir", "lua", "makefile", "markdown", "markup", "matlab",
+    "mathematica", "mermaid", "nix", "notion formula", "objective-c", "ocaml", "pascal", "perl",
+    "php", "plain text", "powershell", "prolog", "protobuf", "purescript", "python", "r", "racket",
+    "reason", "ruby", "rust", "sass", "scala", "scheme", "scss", "shell", "smalltalk", "solidity",
+    "sql", "swift", "toml", "typescript", "vb.net", "verilog", "vhdl", "visual basic",
+    "webassembly", "xml", "yaml", "java/c/c++/c#", "notionscript"
+]
+# fmt: on
+
+LANGUAGE_MAPPING = {
+    "sh": "bash",
+    "js": "javascript",
+    "py": "python",
+    "rb": "ruby",
+    "pl": "perl",
+}
+
 
 def replace_part(parts, pattern, replace_function):
     # Process italic matches
@@ -165,6 +188,9 @@ def process_inline_formatting(text):
         }
 
     def replace_link(match):
+        if not match.group(2).startswith("http"):
+            return match.group(1)
+
         return {
             "type": "text",
             "text": {"content": match.group(1), "link": {"url": match.group(2)}},
@@ -251,7 +277,7 @@ def parse_markdown_to_notion_blocks(markdown):
     """
 
     # Detect code blocks enclosed within triple backticks
-    code_block_pattern = re.compile(r"```(\w+?)\n(.+?)```", re.DOTALL)
+    code_block_pattern = re.compile(r"```(\w*?)\n(.+?)```", re.DOTALL)
     # katex
     latex_block_pattern = re.compile(r"\$\$(.+?)\$\$", re.DOTALL)
     numbered_list_pattern_nested = r"^( *)(\d+)\. "
@@ -271,6 +297,11 @@ def parse_markdown_to_notion_blocks(markdown):
     def replace_code_blocks(match):
         index = len(code_blocks)
         language, content = match.group(1), match.group(2)
+        language = language.strip()
+        language = LANGUAGE_MAPPING.get(language, language)
+        if language not in VALID_CODE_LANGUAGES:
+            language = "plain text"
+
         code_blocks[index] = (language or "plain text").strip(), content.strip()
         return f"CODE_BLOCK_{index}"
 

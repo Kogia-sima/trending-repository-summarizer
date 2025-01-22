@@ -14,6 +14,7 @@ from jinja2 import Template
 from langchain_openai import ChatOpenAI
 from lxml import etree
 from notion_client import Client
+from notion_client.errors import APIErrorCode, APIResponseError
 from pydantic import BaseModel, Field
 from upath import UPath
 
@@ -418,7 +419,20 @@ def create_notion_page_from_md(
     # Iterate through the parsed Markdown blocks and append them to the created page
     blocks = parse_markdown_to_notion_blocks(markdown_text.strip())
     for block in blocks:
-        notion.blocks.children.append(page_id, children=[block])
+        try:
+            notion.blocks.children.append(page_id, children=[block])
+        except APIResponseError as e:
+            if e.code in (
+                APIErrorCode.InvalidJSON,
+                APIErrorCode.InvalidRequest,
+                APIErrorCode.InvalidRequestURL,
+                APIErrorCode.ObjectNotFound,
+                APIErrorCode.ValidationError,
+            ):
+                # Log the error and continue
+                logging.error(f"Failed to create block: {block}\nError: {e}")
+            else:
+                raise
 
 
 @overload
