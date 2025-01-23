@@ -1,13 +1,18 @@
 """
-core.py
+core.py.
 
-This module provides functionality to convert Markdown text into Notion pages. It includes functions to create a Notion page from Markdown text, parse Markdown into Notion blocks, and process inline formatting for bold and italic text.
+This module provides functionality to convert Markdown text into Notion pages. It includes
+functions to create a Notion page from Markdown text, parse Markdown into Notion blocks,
+and process inline formatting for bold and italic text.
 
 Functions:
-    - create_notion_page_from_md(markdown_text, title, parent_page_id, cover_url): Create a Notion page from Markdown text.
+    - create_notion_page_from_md(markdown_text, title, parent_page_id, cover_url):
+        Create a Notion page from Markdown text.
     - parse_md(markdown_text): Parse Markdown text and convert it into Notion blocks.
-    - parse_markdown_to_notion_blocks(markdown): Parse Markdown text and convert it into a list of Notion blocks.
-    - process_inline_formatting(text): Process inline formatting in Markdown text and convert it to Notion rich text formatting.
+    - parse_markdown_to_notion_blocks(markdown):
+        Parse Markdown text and convert it into a list of Notion blocks.
+    - process_inline_formatting(text):
+        Process inline formatting in Markdown text and convert it to Notion rich text formatting.
 
 Dependencies:
     - notion_client: Client library for interacting with the Notion API.
@@ -24,12 +29,12 @@ Example Usage:
     title = "My Notion Page"
     parent_page_id = "YOUR_PARENT_PAGE_ID"
     notion_page_url = md2notionpage(markdown_text, title, parent_page_id)
+
+License:
+    MIT License
+    Copyright (c) 2023 Marko Manninen, 2025 Ryohei Machida
 """
 
-import base64
-import glob
-import json
-import os
 import re
 from os import environ
 from typing import Any, cast
@@ -228,7 +233,7 @@ def process_inline_formatting(text):
 
     # Remove empty strings from the list and return the processed text parts
     return [
-        ({"type": "text", "text": {"content": part}} if type(part) == str else part)
+        ({"type": "text", "text": {"content": part}} if isinstance(part, str) else part)
         for part in text_parts
         if part != ""
     ]
@@ -261,7 +266,10 @@ def convert_markdown_table_to_latex(text):
     count_column = len(split_column[0].split("|"))
 
     table_column = "|c" * count_column
-    add_table = f"\\def\\arraystretch{{1.4}}\\begin{{array}}{{{table_column}|}}\\hline\n{table_content}\\end{{array}}"
+    add_table = (
+        "\\def\\arraystretch{{1.4}}"
+        f"\\begin{{array}}{{{table_column}|}}\\hline\n{table_content}\\end{{array}}"
+    )
 
     return add_table
 
@@ -285,7 +293,7 @@ def parse_markdown_to_notion_blocks(markdown):
     heading_pattern = r"^(#+) "
 
     # indented_code_pattern = re.compile(r'^ {4}(.+)$', re.MULTILINE)
-    triple_backtick_code_pattern = re.compile(r"^```(.+?)```", re.MULTILINE | re.DOTALL)
+    # triple_backtick_code_pattern = re.compile(r"^```(.+?)```", re.MULTILINE | re.DOTALL)
     blockquote_pattern = r"^> (.+)$"
     horizontal_line_pattern = r"^-{3,}$"
     image_pattern = r"!\[(.*?)\]\((.*?)\)"
@@ -331,8 +339,8 @@ def parse_markdown_to_notion_blocks(markdown):
 
     indented_code_accumulator = []
     for line in lines:
-
-        # Check if the line is a table row (e.g., "| Header 1 | Header 2 |" or "| Content 1 | Content 2 |")
+        # Check if the line is a table row
+        # (e.g., "| Header 1 | Header 2 |" or "| Content 1 | Content 2 |")
         is_table_row = re.match(r"\|\s*[^-|]+\s*\|", line)
         # Check if the line is a table delimiter (e.g., "|---|---|")
         is_table_delimiter = re.match(r"\|\s*[-]+\s*\|\s*[-]+\s*\|", line)
@@ -433,9 +441,7 @@ def parse_markdown_to_notion_blocks(markdown):
                         "type": "code",
                         "code": {
                             "language": "plain text",
-                            "rich_text": [
-                                {"type": "text", "text": {"content": code_block}}
-                            ],
+                            "rich_text": [{"type": "text", "text": {"content": code_block}}],
                         },
                     }
                 )
@@ -472,11 +478,7 @@ def parse_markdown_to_notion_blocks(markdown):
                 {
                     "object": "block",
                     "type": "quote",
-                    "quote": {
-                        "rich_text": process_inline_formatting(
-                            blockquote_match.group(1)
-                        )
-                    },
+                    "quote": {"rich_text": process_inline_formatting(blockquote_match.group(1))},
                 }
             )
 
@@ -490,9 +492,7 @@ def parse_markdown_to_notion_blocks(markdown):
                     "type": "code",
                     "code": {
                         "language": language,
-                        "rich_text": [
-                            {"type": "text", "text": {"content": code_block}}
-                        ],
+                        "rich_text": [{"type": "text", "text": {"content": code_block}}],
                     },
                 }
             )
@@ -501,9 +501,7 @@ def parse_markdown_to_notion_blocks(markdown):
         elif line.strip().startswith("LATEX_BLOCK_"):
             latex_block_index = int(line.strip()[len("LATEX_BLOCK_") :])
             latex_content = latex_blocks[latex_block_index]
-            blocks.append(
-                {"type": "equation", "equation": {"expression": latex_content}}
-            )
+            blocks.append({"type": "equation", "equation": {"expression": latex_content}})
 
         # Image blocks
         elif image_match:
@@ -606,7 +604,7 @@ def create_notion_page_from_md(markdown_text, title, parent_page_id, cover_url="
     :type title: str
     :param parent_page_id: The ID of the parent page under which the new page will be created.
     :type parent_page_id: str
-    :param cover_url: (Optional) The URL of the cover image for the new page. Defaults to an empty string.
+    :param cover_url: The URL of the cover image for the new page. Defaults to an empty string.
     :type cover_url: str
     :return: The URL of the created Notion page.
     :rtype: str
@@ -626,9 +624,7 @@ def create_notion_page_from_md(markdown_text, title, parent_page_id, cover_url="
         # Update the page with the title and cover (if provided)
         notion.pages.update(
             created_page["id"],
-            properties={
-                "title": {"title": [{"type": "text", "text": {"content": title}}]}
-            },
+            properties={"title": {"title": [{"type": "text", "text": {"content": title}}]}},
             cover={
                 "external": {
                     # Example URL: https://raw.githubusercontent.com/markomanninen/md2notion/main/photo-1501504905252-473c47e087f8.jpeg
@@ -640,9 +636,7 @@ def create_notion_page_from_md(markdown_text, title, parent_page_id, cover_url="
         # Update the page with the title and cover (if provided)
         notion.pages.update(
             created_page["id"],
-            properties={
-                "title": {"title": [{"type": "text", "text": {"content": title}}]}
-            },
+            properties={"title": {"title": [{"type": "text", "text": {"content": title}}]}},
         )
 
     # Iterate through the parsed Markdown blocks and append them to the created page

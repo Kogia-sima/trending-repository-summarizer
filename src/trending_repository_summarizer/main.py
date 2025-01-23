@@ -9,10 +9,10 @@ from urllib.parse import urljoin, urlparse
 
 import markdown
 import requests
+from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from jinja2 import Template
 from langchain_openai import ChatOpenAI
-from lxml import etree
 from notion_client import Client
 from notion_client.errors import APIErrorCode, APIResponseError
 from pydantic import BaseModel, Field
@@ -84,14 +84,14 @@ class RepositoryInfo(BaseModel):
 
 
 def get_trending_repositories(
-    language: str, since: str, xpath: str = "//h2[@class='h3 lh-condensed']/a/@href"
+    language: str, since: str, selector: str = "h2.h3.lh-condensed > a"
 ) -> List[str]:
     url = f"https://github.com/trending/{language}?since={since}"
-    response = requests.get(url)
+    response = requests.get(url, timeout=30)
     response.raise_for_status()
 
-    tree = etree.HTML(response.text, etree.HTMLParser())
-    hrefs = tree.xpath(xpath)
+    soup = BeautifulSoup(response.text, "lxml")
+    hrefs: list[str] = [a["href"] for a in soup.select(selector)]  # type: ignore
     repo_names = ["/".join(href.split("/")[-2:]) for href in hrefs]
 
     return repo_names
@@ -101,7 +101,7 @@ def get_repository_metadata(repo_id: str) -> RepositoryMetaData:
     """Get repository information from GitHub"""
     logging.info(f"Fetching metadata for {repo_id}")
     url = f"{GITHUB_API_ENDPOINT}/repos/{repo_id}"
-    response = requests.get(url)
+    response = requests.get(url, timeout=30)
     response.raise_for_status()
     data = response.json()
 
@@ -129,7 +129,7 @@ def get_repository_readme(repo_id: str) -> str:
     """Get repository README from GitHub"""
     logging.info(f"Fetching README for {repo_id}")
     url = f"{GITHUB_API_ENDPOINT}/repos/{repo_id}/readme"
-    response = requests.get(url)
+    response = requests.get(url, timeout=30)
     response.raise_for_status()
     data = response.json()
 
@@ -142,8 +142,8 @@ def get_repository_readme(repo_id: str) -> str:
 def extract_thumbnail_url(metadata: RepositoryMetaData, readme: str) -> str | None:
     """Extract thumbnail URL from README"""
     html = markdown.markdown(readme)
-    tree = etree.HTML(html, etree.HTMLParser())
-    img_srcs = tree.xpath("//img/@src")
+    soup = BeautifulSoup(html, "lxml")
+    img_srcs: list[str] = [img["src"] for img in soup.select("img")]  # type: ignore
 
     # filter out non-image URLs
     valid_exts = (".png", ".jpg", ".jpeg", ".webp")
