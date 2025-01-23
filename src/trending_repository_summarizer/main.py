@@ -3,7 +3,6 @@ import datetime
 import logging
 import os
 import time
-from pathlib import Path
 from typing import List, Type, TypeVar, overload
 from urllib.parse import urljoin, urlparse
 
@@ -39,11 +38,15 @@ REPOSITORY_TAGS = [
 
 
 class ReferenceSite(BaseModel):
+    """リポジトリの学習リソースとなるサイト"""
+
     name: str
     url: str
 
 
 class RepositoryMetaData(BaseModel):
+    """リポジトリのメタデータ"""
+
     repo_id: str
     repo_name: str
     repo_url: str
@@ -77,6 +80,8 @@ class RepositoryTags(BaseModel):
 
 
 class RepositoryInfo(BaseModel):
+    """リポジトリの情報"""
+
     version: str = "1.0"
     metadata: RepositoryMetaData
     summary: RepositorySummary
@@ -86,6 +91,7 @@ class RepositoryInfo(BaseModel):
 def get_trending_repositories(
     language: str, since: str, selector: str = "h2.h3.lh-condensed > a"
 ) -> List[str]:
+    """Get trending repositories from GitHub"""
     url = f"https://github.com/trending/{language}?since={since}"
     response = requests.get(url, timeout=30)
     response.raise_for_status()
@@ -269,7 +275,7 @@ def summarize_repository(
         user_prompt=f"{metadata.repo_name}を手早く使い始めるための手順を、400文字以内の日本語で、ユーザ向けに分かりやすく説明してください。",
     )
 
-    # タグ
+    # タグの生成
     temperature = 0.0
     while True:
         tags = _invoke_llm(
@@ -284,14 +290,17 @@ def summarize_repository(
             temperature=temperature,
         ).tags
 
+        # 生成されたタグが有効なものであればループを抜ける
         if all(tag in REPOSITORY_TAGS for tag in tags):
             break
 
+        # temperatureが2.0を超えた場合は警告を出して終了
         if temperature >= 2.0:
             logging.warning("Failed to generate tags")
             tags = []
             break
 
+        # temperatureを上げて再度生成を試みる
         temperature += 0.2
 
     summary = RepositorySummary(
@@ -309,6 +318,7 @@ def summarize_repository(
 
 
 def format_repository_info(info: RepositoryInfo) -> str:
+    # ページのmarkdownコードのテンプレート
     template_str = """\
 {{ summary.description }}
 
@@ -354,17 +364,8 @@ def format_repository_info(info: RepositoryInfo) -> str:
     return result
 
 
-def load_repositories(dir: Path) -> List[RepositoryInfo]:
-    repos = []
-    for path in dir.glob("*/*.json"):
-        json_text = path.read_text(encoding="utf-8")
-        info = RepositoryInfo.model_validate_json(json_text)
-        repos.append(info)
-
-    return repos
-
-
 def save_repository_info(path: UPath, info: RepositoryInfo) -> None:
+    """Save repository information to a JSON file"""
     path.parent.mkdir(parents=True, exist_ok=True)
     json_text = info.model_dump_json(indent=2)
     path.write_text(json_text, encoding="utf-8")
@@ -527,6 +528,7 @@ def main() -> None:
 
 
 def lambda_handler(event, context) -> str:
+    """AWS Lambda用のハンドラ"""
     main()
     return "Success"
 
