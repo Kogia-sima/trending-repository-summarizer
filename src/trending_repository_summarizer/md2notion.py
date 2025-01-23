@@ -380,12 +380,12 @@ def parse_markdown_to_notion_blocks(markdown):
                 stack[-1].append(item)
             else:  # indent > current_indent
                 # Nested item, add it as a child of the previous item
-                if "children" not in stack[-1][-1]["numbered_list_item"]:
-                    stack[-1][-1]["numbered_list_item"]["children"] = []
-                stack[-1][-1]["numbered_list_item"]["children"].append(item)
-                stack.append(
-                    stack[-1][-1]["numbered_list_item"]["children"]
-                )  # Add a new level to the stack
+                parent = stack[-1][-1][stack[-1][-1]["type"]]
+                if "children" not in parent:
+                    parent["children"] = []
+                parent["children"].append(item)
+                # Add a new level to the stack
+                stack.append(parent["children"])
                 current_indent += 1
 
             continue
@@ -411,12 +411,12 @@ def parse_markdown_to_notion_blocks(markdown):
                 stack[-1].append(item)
             else:  # indent > current_indent
                 # Nested item, add it as a child of the previous item
-                if "children" not in stack[-1][-1]["bulleted_list_item"]:
-                    stack[-1][-1]["bulleted_list_item"]["children"] = []
-                stack[-1][-1]["bulleted_list_item"]["children"].append(item)
-                stack.append(
-                    stack[-1][-1]["bulleted_list_item"]["children"]
-                )  # Add a new level to the stack
+                parent = stack[-1][-1][stack[-1][-1]["type"]]
+                if "children" not in parent:
+                    parent["children"] = []
+                parent["children"].append(item)
+                # Add a new level to the stack
+                stack.append(parent["children"])
                 current_indent += 1
 
             continue
