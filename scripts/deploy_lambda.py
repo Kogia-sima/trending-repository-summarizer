@@ -88,8 +88,9 @@ def deploy_lambda():
         ]
     )
 
-    # Remove the zip file
+    # Remove the temporary files
     Path("lambda_function.zip").unlink()
+    Path("requirements.txt").unlink()
 
 
 if __name__ == "__main__":
