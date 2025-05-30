@@ -456,7 +456,7 @@ def _invoke_llm(
 ):
     """Invoke OpenAI's Language Model API"""
     chat = ChatOpenAI(
-        model="gpt-4o-mini",
+        model="gpt-4.1",
         openai_api_key=os.getenv("OPENAI_API_KEY"),  # type: ignore
         temperature=temperature,
     )
