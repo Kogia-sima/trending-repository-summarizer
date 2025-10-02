@@ -44,7 +44,8 @@ def deploy_lambda():
 
     # Create a requirements.txt file
     subprocess.run(
-        ["poetry", "export", "-f", "requirements.txt", "-o", "requirements.txt"]
+        ["poetry", "export", "-f", "requirements.txt", "-o", "requirements.txt"],
+        check=True,
     )
 
     # Install the dependencies in the temp directory
@@ -66,7 +67,8 @@ def deploy_lambda():
             ":all:",
             "--upgrade",
             "--no-deps",
-        ]
+        ],
+        check=True,
     )
 
     # Zip the contents of the temp directory
@@ -85,7 +87,8 @@ def deploy_lambda():
             LAMBDA_NAME,
             "--zip-file",
             "fileb://lambda_function.zip",
-        ]
+        ],
+        check=True,
     )
 
     # Remove the temporary files
