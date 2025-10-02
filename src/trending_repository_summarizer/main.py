@@ -113,9 +113,7 @@ def get_repository_metadata(repo_id: str) -> RepositoryMetaData:
 
     reference_sites = [ReferenceSite(name="GitHubリポジトリ", url=data["html_url"])]
     if data["homepage"]:
-        reference_sites.insert(
-            0, ReferenceSite(name="ホームページ", url=data["homepage"])
-        )
+        reference_sites.insert(0, ReferenceSite(name="ホームページ", url=data["homepage"]))
 
     return RepositoryMetaData(
         repo_id=repo_id,
@@ -153,9 +151,7 @@ def extract_thumbnail_url(metadata: RepositoryMetaData, readme: str) -> str | No
 
     # filter out non-image URLs
     valid_exts = (".png", ".jpg", ".jpeg", ".webp")
-    img_src = next(
-        iter(src for src in img_srcs if urlparse(src).path.endswith(valid_exts)), None
-    )
+    img_src = next(iter(src for src in img_srcs if urlparse(src).path.endswith(valid_exts)), None)
     if img_src is None:
         return None
 
@@ -164,9 +160,7 @@ def extract_thumbnail_url(metadata: RepositoryMetaData, readme: str) -> str | No
     return img_src
 
 
-def summarize_repository(
-    metadata: RepositoryMetaData, readme: str
-) -> RepositorySummary:
+def summarize_repository(metadata: RepositoryMetaData, readme: str) -> RepositorySummary:
     """Summarize README using OpenAI GPT-3"""
     # prompt cacheが効くように、READMEの内容をsystem_promptに含める
     system_prompt = (
@@ -407,9 +401,7 @@ def create_notion_page_from_md(
     # build properties
     properties = {"title": {"title": [{"type": "text", "text": {"content": title}}]}}
     if short_description is not None:
-        properties["Description"] = {
-            "rich_text": process_inline_formatting(short_description)
-        }
+        properties["Description"] = {"rich_text": process_inline_formatting(short_description)}
     if tags is not None:
         properties["Tags"] = {"multi_select": [{"name": tag} for tag in tags]}
 
@@ -439,9 +431,7 @@ def create_notion_page_from_md(
 
 
 @overload
-def _invoke_llm(
-    system_prompt: str, user_prompt: str, *, temperature: float = 0.0
-) -> str: ...
+def _invoke_llm(system_prompt: str, user_prompt: str, *, temperature: float = 0.0) -> str: ...
 
 
 @overload
@@ -453,9 +443,7 @@ def _invoke_llm(
 ) -> StructuredResponse: ...
 
 
-def _invoke_llm(
-    system_prompt: str, user_prompt: str, format=None, temperature: float = 0.0
-):
+def _invoke_llm(system_prompt: str, user_prompt: str, format=None, temperature: float = 0.0):
     """Invoke OpenAI's Language Model API"""
     chat = ChatOpenAI(
         model="gpt-4.1",
