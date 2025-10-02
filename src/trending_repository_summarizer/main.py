@@ -399,8 +399,10 @@ def create_notion_page_from_md(
 
     # build page options
     page_options = {}
-    if cover_url is not None:
-        page_options["cover"] = {"external": {"url": cover_url}}
+
+    # Since the github changed the image url, we have to disable cover url temporarily
+    # if cover_url is not None:
+    #     page_options["cover"] = {"type": "external", "external": {"url": cover_url}}
 
     # build properties
     properties = {"title": {"title": [{"type": "text", "text": {"content": title}}]}}
