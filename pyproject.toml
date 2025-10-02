@@ -29,6 +29,9 @@ dev = [
     "ruff>=0.4.9",
 ]
 
+[project.scripts]
+main = "trending_repository_summarizer.main:main"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
