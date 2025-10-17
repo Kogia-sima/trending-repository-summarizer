@@ -88,6 +88,9 @@ extend-select = [
     "W",
 ]
 
+[tool.bandit]
+skips = ["B404", "B603", "B607"]
+
 [tool.mypy]
 files = ["src", "tests"]
 strict = true

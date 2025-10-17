@@ -115,6 +115,11 @@ def get_repository_metadata(repo_id: str) -> RepositoryMetaData:
     if data["homepage"]:
         reference_sites.insert(0, ReferenceSite(name="ホームページ", url=data["homepage"]))
 
+    if data["license"] is None:
+        licenses = []
+    else:
+        licenses = [data["license"]["name"]]
+
     return RepositoryMetaData(
         repo_id=repo_id,
         repo_name=data["name"].split("/")[-1],
@@ -123,7 +128,7 @@ def get_repository_metadata(repo_id: str) -> RepositoryMetaData:
         default_branch=data["default_branch"],
         stars=data["stargazers_count"],
         pushed_at=datetime.datetime.fromisoformat(data["pushed_at"]),
-        licenses=[data["license"]["name"]],
+        licenses=licenses,
         reference_sites=reference_sites,
         retrieval_time=datetime.datetime.now(),
     )
