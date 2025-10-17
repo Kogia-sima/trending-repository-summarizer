@@ -1,5 +1,6 @@
 import shutil
 import subprocess
+import sys
 import tomllib
 from importlib import import_module
 from pathlib import Path
@@ -11,7 +12,7 @@ def get_entry_point() -> Path:
     # pyproject.tomlの読み込み
     with open("pyproject.toml", "rb") as f:
         pyproject = tomllib.load(f)
-    main_module_path = pyproject["tool"]["poetry"]["scripts"]["main"].split(":")[0]
+    main_module_path = pyproject["project"]["scripts"]["main"].split(":")[0]
     main_module = import_module(main_module_path)
     entrypoint = Path(str(main_module.__file__))
     return entrypoint
@@ -44,15 +45,13 @@ def deploy_lambda():
 
     # Create a requirements.txt file
     subprocess.run(
-        ["poetry", "export", "-f", "requirements.txt", "-o", "requirements.txt"],
+        ["uv", "export", "-o", "requirements.txt", "--no-dev", "--no-hashes"],
         check=True,
     )
 
     # Install the dependencies in the temp directory
     subprocess.run(
         [
-            "poetry",
-            "run",
             "pip",
             "install",
             "-r",
@@ -65,6 +64,10 @@ def deploy_lambda():
             "cp",
             "--only-binary",
             ":all:",
+            "--python-version",
+            "311",
+            "--abi",
+            "cp311",
             "--upgrade",
             "--no-deps",
         ],
@@ -87,6 +90,8 @@ def deploy_lambda():
             LAMBDA_NAME,
             "--zip-file",
             "fileb://lambda_function.zip",
+            "--cli-connect-timeout",
+            "6000",
         ],
         check=True,
     )
