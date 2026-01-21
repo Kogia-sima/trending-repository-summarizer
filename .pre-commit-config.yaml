@@ -31,3 +31,9 @@ repos:
     hooks:
       - id: prettier
         exclude: ^poetry.lock
+
+  # Gitleaks - detect secrets in the repository
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.24.2
+    hooks:
+      - id: gitleaks
