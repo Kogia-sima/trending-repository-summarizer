@@ -41,7 +41,7 @@ addopts = "-vvv"
 testpaths = "tests"
 
 [tool.ruff]
-extend-exclude = ["__pycache__", "build", "dist", "scripts"]
+extend-exclude = ["__pycache__", "build", "dist", "scripts", ".claude"]
 target-version = "py311"
 line-length = 100
 src = ["src", "tests"]
@@ -86,6 +86,18 @@ extend-select = [
     "S101",
     "T20",
     "W",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = [
+    "D104",   # 公開パッケージにdocstringが記載されていない
+    "EXE002", # 実行可能ファイルにShebangが記載されていない
+    "F401",   # 未使用のimport
+]
+"tests/*.py" = [
+    "ANN001", # 引数の型アノテーションが不足
+    "B011",   # assert Falseの使用
+    "S101",   # assertの使用
 ]
 
 [tool.bandit]
