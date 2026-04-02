@@ -27,6 +27,7 @@ dev = [
     "bandit>=1.7.9",
     "docformatter>=1.7.5",
     "ruff>=0.4.9",
+    "pyright>=1.1.408",
 ]
 
 [project.scripts]
@@ -106,3 +107,17 @@ skips = ["B404", "B603", "B607"]
 [tool.mypy]
 files = ["src", "tests"]
 strict = true
+
+[tool.pyright]
+pythonVersion = "3.11"
+typeCheckingMode = "standard"
+reportMissingTypeStubs = "none"
+exclude = [
+    "work",
+    "scripts",
+    "tests",
+    "build",
+    "dist",
+    ".venv",
+    ".claude",
+]
