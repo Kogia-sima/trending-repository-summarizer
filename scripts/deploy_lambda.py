@@ -68,7 +68,6 @@ def deploy_lambda():
             "311",
             "--abi",
             "cp311",
-            "--upgrade",
             "--no-deps",
         ],
         check=True,
