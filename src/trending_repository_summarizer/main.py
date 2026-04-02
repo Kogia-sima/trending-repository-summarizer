@@ -492,6 +492,8 @@ def main() -> None:
         if (repo_dir / f"{repo_id}.json").exists():
             continue
 
+        logging.info("Found new repository: " + repo_id)
+
         # Fetcj repository metadata
         metadata = get_repository_metadata(repo_id)
         # Avoid rate limiting
